@@ -1,0 +1,15 @@
+﻿{
+  "ingredientPattern": "G_G,LBL,SSS",
+  "width": 3,
+  "height": 3,
+  "ingredients": {
+    "B": { type: "item", code: "game:plank-*", name: "board", quantity: 8 },
+    "L": { type: "item", code: "game:ore-lapislazuli" },
+    "S": {"type": "block", "code": "game:metal-scraps" },
+    "G": {"type": "item", "code": "game:gear-temporal" }
+  },
+  "output": {
+    "type": "block",
+    "code": "chardis:chardis"
+  }
+}

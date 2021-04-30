@@ -1,0 +1,22 @@
+{
+	code: "chardis",
+	class: "ChardisBlock",
+	entityClass: "ChardisBlockEntity",
+	damagedby: [ "blockbreaking" ],
+	creativeinventory: { "general": ["*"] },
+	shape: { base: "game:block/basic/cube" },
+	blockmaterial: "Wood",
+	drawtype: "Cube",
+	textures: {
+		verticals: { base: "block/chardis-topbottom" },
+		horizontals: { base: "block/chardis-side" }
+	},
+	resistance: 32,
+	sounds: {
+		"place": "game:block/anvil",
+		"walk": "game:walk/stone"
+	},
+	behaviors: [
+		{ name: "Container" }
+	]
+}

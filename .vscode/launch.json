@@ -1,0 +1,34 @@
+{
+	"version": "0.2.0",
+	"configurations": [{
+		"name": "Launch Client (Mono)",
+		"type": "mono",
+		"request": "launch",
+		"preLaunchTask": "Build (Debug)",
+		"program": "${env:VINTAGE_STORY}/Vintagestory.exe",
+		"args": [
+			"--playStyle" , "preset-surviveandbuild",
+			"--openWorld" , "modding test world",
+			"--addModPath", "${workspaceFolder}/bin/Debug/net452",
+			"--addOrigin" , "${workspaceFolder}/resources/assets",
+		],
+		"console": "internalConsole",
+		"internalConsoleOptions": "openOnSessionStart",
+	},{
+		"name": "Launch Client (.NET)",
+		"type": "clr",
+		"request": "launch",
+		"preLaunchTask": "Build (Debug)",
+		"program": "${env:VINTAGE_STORY}/Vintagestory.exe",
+		"args": [
+			"--playStyle" , "preset-surviveandbuild",
+			"--openWorld" , "modding test world",
+			"--addModPath", "${workspaceFolder}/bin/Debug/net452",
+			"--addOrigin" , "${workspaceFolder}/resources/assets",
+		],
+		"console": "internalConsole",
+		"internalConsoleOptions": "openOnSessionStart",
+	}]
+}
+
+C:/Users/msche/AppData/Roaming/Vintagestory/Vintagestory.exe --playStyle preset-surviveandbuild --openWorld 'modding test world' --addModPath D:/development/modding/vintagestory/howto-example-mod/bin/Debug/net452 --addOrigin D:/development/modding/vintagestory/howto-example-mod/resources/assets
