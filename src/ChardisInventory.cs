@@ -1,4 +1,5 @@
-﻿using Vintagestory.API.Common;
+﻿using System;
+using Vintagestory.API.Common;
 
 namespace Chardis
 {
@@ -12,67 +13,22 @@ namespace Chardis
         {
         }
 
-        public bool InitSlots(int count)
+        public void InitSlots(int numSlots)
         {
-            var currentSlots = slots;
-
-            // same length, return fast.
-            if (currentSlots?.Length == count)
+            // no new slots.
+            if (numSlots <= Count)
             {
-                return true;
+                return;
             }
 
-            // slots reduced, make sure all slots that are about to be removed are empty.
-            if (currentSlots?.Length > count)
+            var startIndex = Count;
+            Array.Resize(ref slots, numSlots);
+
+            for (var index = startIndex; index < numSlots; index += 1)
             {
-                var startEmptyCheckI = 0;
-                for (var i = slots.Length; i < currentSlots?.Length; i += 1)
-                {
-                    if (slots[i].Empty)
-                    {
-                        continue;
-                    }
-
-                    // move itemstack into first empty slot.
-                    for (; startEmptyCheckI < count; startEmptyCheckI += 1)
-                    {
-                        if (!slots[startEmptyCheckI].Empty)
-                        {
-                            continue;
-                        }
-
-                        slots[startEmptyCheckI].Itemstack = currentSlots[i].Itemstack;
-                        slots[startEmptyCheckI].MarkDirty();
-                        currentSlots[i].Itemstack = null;
-                        currentSlots[i].MarkDirty();
-                        break;
-                    }
-
-                    if (startEmptyCheckI == count)
-                    {
-                        return false;
-                    }
-                }
+                slots[index] = NewSlot(index);
+                slots[index].MarkDirty();
             }
-
-            var newSlots = new ItemSlot[count];
-
-            for (var i = 0; i < count; i += 1)
-            {
-                if (i < currentSlots?.Length && currentSlots[i] != null)
-                {
-                    newSlots[i] = currentSlots[i];
-
-                }
-                else
-                {
-                    newSlots[i] = NewSlot(i);
-                }
-            }
-
-            slots = newSlots;
-
-            return true;
         }
     }
 }

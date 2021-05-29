@@ -1,15 +1,18 @@
-using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
 using Chardis.Gui;
-using Chardis.Models;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
 using Vintagestory.API.Datastructures;
+using Vintagestory.API.MathTools;
 using Vintagestory.API.Server;
 using Vintagestory.GameContent;
 
 namespace Chardis
 {
-	public class ChardisBlockEntity : BlockEntityOpenableContainer
+	public class ChardisBlockEntity : BlockEntityGenericTypedContainer
 	{
 		public delegate void Notify(int numSlots, int numInstalledUpgrades);
 
@@ -20,6 +23,7 @@ namespace Chardis
 		public ModConfig ModConfig { get; private set; }
 
 		private ChardisInventory _inventory;
+
 		public override InventoryBase Inventory => _inventory;
 		public override string InventoryClassName => "chardis";
 		public int NumInstalledUpgrades { get; private set; }
@@ -27,81 +31,111 @@ namespace Chardis
 
 		public override void Initialize(ICoreAPI api)
 		{
-			SetupInventory(api);
+			Api = api;
+			ModConfig = api.ModLoader.GetModSystem<Chardis>().ModConfig;
+			if (NumSlots == 0)
+			{
+				NumSlots = ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade;
+			}
 			base.Initialize(api);
 		}
 
 		public override void FromTreeAttributes(ITreeAttribute tree, IWorldAccessor worldForResolving)
 		{
 			Api = worldForResolving.Api;
-			NumInstalledUpgrades = tree.GetInt("numInstalledUpgrades", NumInstalledUpgrades);
-			NumSlots = tree.GetInt("numSlots", NumSlots);
-			SetupInventory(worldForResolving.Api);
+			ModConfig = Api.ModLoader.GetModSystem<Chardis>().ModConfig;
+			NumInstalledUpgrades = tree.GetInt("numInstalledUpgrades");
+			NumSlots = tree.GetInt("numSlots", ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade);
+			Pos = new BlockPos(tree.GetInt("posx"), tree.GetInt("posy"), tree.GetInt("posz"));
+
 			base.FromTreeAttributes(tree, worldForResolving);
-			_inventory.FromTreeAttributes(tree);
+			_inventory.InitSlots(NumSlots);
+			NotifyInventoryResize?.Invoke(NumSlots, NumInstalledUpgrades);
 		}
 
 		public override void ToTreeAttributes(ITreeAttribute tree)
 		{
 			base.ToTreeAttributes(tree);
-			_inventory.ToTreeAttributes(tree);
 			tree.SetInt("numInstalledUpgrades", NumInstalledUpgrades);
 			tree.SetInt("numSlots", _inventory.Count);
 		}
 
-		private void SetupInventory(ICoreAPI api)
+		protected override void InitInventory(Block block)
 		{
-			if (_inventory == null)
+			if (_inventory != null)
 			{
-				if (!(api.ModLoader.GetModSystem(typeof(Chardis).FullName) is Chardis chardis))
+				return;
+			}
+
+			_inventory = new ChardisInventory("chardis", block.Id.ToString(), Api, NumSlots);
+
+			GetType().GetField("inventory", BindingFlags.Instance | BindingFlags.NonPublic)?.SetValue(this, _inventory);
+			_inventory.BaseWeight = 1f;
+			_inventory.OnGetSuitability = (sourceSlot, targetSlot, isMerge) => (float) ((isMerge ? _inventory.BaseWeight + 3.0 : _inventory.BaseWeight + 1.0) + (sourceSlot.Inventory is InventoryBasePlayer ? 1.0 : 0.0));
+			_inventory.OnGetAutoPullFromSlot = GetAutoPullFromSlot;
+			if (block.Attributes != null)
+			{
+				if (block.Attributes["spoilSpeedMulByFoodCat"][type].Exists)
 				{
-					throw new NullReferenceException("Could not get Chardis Mod");
+					_inventory.PerishableFactorByFoodCategory = block.Attributes["spoilSpeedMulByFoodCat"][type].AsObject<Dictionary<EnumFoodCategory, float>>();
 				}
 
-				ModConfig = chardis.ModConfig;
-				if (NumSlots == 0)
+				if (block.Attributes["transitionSpeedMulByType"][type].Exists)
 				{
-					NumSlots = ModConfig.BaseSlots;
+					_inventory.TransitionableSpeedMulByType = block.Attributes["transitionSpeedMulByType"][type].AsObject<Dictionary<EnumTransitionType, float>>();
 				}
+			}
+			_inventory.PutLocked = retrieveOnly;
+			_inventory.OnInventoryClosed += OnInvClosed;
+			_inventory.OnInventoryOpened += OnInvOpened;
+		}
 
-				_inventory = new ChardisInventory("chardis", Block.Id.ToString(), api, NumSlots);
-
-				if (api is ICoreClientAPI)
+		public override void OnReceivedServerPacket(int packetid, byte[] data) 
+		{
+			var world = (IClientWorldAccessor) Api.World;
+			// this packet seems to be treated specially... I attempted removing the unnecessary data and using a custom packet id but it caused bugs. TODO: revisit this later.
+			if (packetid == 5000)
+			{
+				if (invDialog != null)
 				{
-					chardis.OnInventoryResize += message =>
+					if (invDialog?.IsOpened() == true)
 					{
-						if (message.ChardisBlockPos == Pos)
-						{
-							ResizeInventory(message.NumSlots, message.NumInstalledUpgrades);
-						}
-					};
+						invDialog?.TryClose();
+					}
+					invDialog?.Dispose();
+					invDialog = null;
+					return;
 				}
+				var treeAttribute = new TreeAttribute();
+				using (var memoryStream = new MemoryStream(data))
+				{
+					var stream = new BinaryReader(memoryStream);
+					stream.ReadString();
+					stream.ReadString();
+					stream.ReadByte();
+					treeAttribute.FromBytes(stream);
+				}
+				Inventory.FromTreeAttributes(treeAttribute);
+				Inventory.ResolveBlocksOrItems();
+				invDialog = new Dialog(Api as ICoreClientAPI, (Api as ICoreClientAPI)?.World.Player, this);
+				invDialog.TryOpen();
 			}
-			else
+
+			if (packetid != 1001)
 			{
-				ResizeInventory(NumSlots, NumInstalledUpgrades);
+				return;
 			}
+			world.Player.InventoryManager.CloseInventory(Inventory);
+			if (invDialog?.IsOpened() == true)
+			{
+				invDialog?.TryClose();
+			}
+
+			invDialog?.Dispose();
+			invDialog = null;
 		}
 
-		private bool ResizeInventory(int numSlots, int numInstalledUpgrades)
-		{
-			NumInstalledUpgrades = numInstalledUpgrades;
-
-			if (numSlots != NumSlots && !_inventory.InitSlots(numSlots))
-			{
-				NotifyInventoryResize?.Invoke(NumSlots, numInstalledUpgrades);
-				return false;
-			}
-
-			NumSlots = numSlots;
-			if (Api is ICoreServerAPI sapi)
-			{
-				sapi.Network.GetChannel(Chardis.NetworkChannel)
-					.BroadcastPacket(new InventoryResize { ChardisBlockPos = Pos, NumSlots = NumSlots, NumInstalledUpgrades = NumInstalledUpgrades });
-			}
-			NotifyInventoryResize?.Invoke(numSlots, numInstalledUpgrades);
-			return true;
-		}
+		private ItemSlot GetAutoPullFromSlot(BlockFacing atBlockFace) => atBlockFace == BlockFacing.DOWN ? _inventory.FirstOrDefault(slot => !slot.Empty) : null;
 
 		public override bool OnPlayerRightClick(IPlayer player, BlockSelection blockSel)
 		{
@@ -122,36 +156,25 @@ namespace Chardis
 						player.InventoryManager.ActiveHotbarSlot.MarkDirty();
 					}
 
-					var newCount = ModConfig.BaseSlots + (NumInstalledUpgrades + 1) * ModConfig.SlotsPerUpgrade;
-					if (!ResizeInventory(newCount, NumInstalledUpgrades + 1))
-					{
-						return false;
-					}
+					NumInstalledUpgrades += 1;
+					NumSlots = ModConfig.BaseSlots + (NumInstalledUpgrades + 1) * ModConfig.SlotsPerUpgrade;
+					_inventory.InitSlots(NumSlots);
+					MarkDirty();
+
 					sapi.SendMessage(player, 0, "Installed upgrade.", EnumChatType.CommandSuccess);
 					sapi.World.PlaySoundAt(new AssetLocation("game", "sounds/block/teleporter.ogg"), player.Entity, randomizePitch: false);
 					return true;
 				}
 
-				player.InventoryManager.OpenInventory(_inventory);
-				sapi.Network.GetChannel(Chardis.NetworkChannel)
-					.SendPacket(new InventoryResize { ChardisBlockPos = Pos, NumSlots = NumSlots, NumInstalledUpgrades = NumInstalledUpgrades }, player as IServerPlayer);
+				return base.OnPlayerRightClick(player, blockSel);
 			}
-			else if (Api.World.Api is ICoreClientAPI capi)
+
+			if (itemStack?.Collectible?.Code?.ToString() == ModConfig.UpgradeItemCode)
 			{
-				if (itemStack?.Collectible?.Code?.ToString() == ModConfig.UpgradeItemCode)
-				{
-					return true;
-				}
-
-				player.InventoryManager.OpenInventory(_inventory);
-				var dialog = new Dialog(capi, player, this);
-				if (!dialog.TryOpen())
-				{
-					// xxx - do something??
-				}
+				return true;
 			}
 
-			return true;
+			return base.OnPlayerRightClick(player, blockSel);
 		}
 
 		public ItemStack[] GetDrops()

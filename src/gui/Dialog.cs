@@ -6,7 +6,7 @@ using Vintagestory.API.Config;
 
 namespace Chardis.Gui
 {
-    public class Dialog : GuiDialog
+    public class Dialog : GuiDialogBlockEntityInventory
     {
         private const int Padding = 15;
         private const int StackListHeight = 300;
@@ -23,7 +23,7 @@ namespace Chardis.Gui
         private readonly IPlayer _player;
         private string _filter;
 
-        public Dialog(ICoreClientAPI capi, IPlayer player, ChardisBlockEntity chardisBlockEntity) : base(capi)
+        public Dialog(ICoreClientAPI capi, IPlayer player, ChardisBlockEntity chardisBlockEntity) : base("", chardisBlockEntity.Inventory, chardisBlockEntity.Pos, 8, capi)
         {
             _chardisBlockEntity = chardisBlockEntity;
             _player = player;
@@ -36,6 +36,7 @@ namespace Chardis.Gui
                     _upgradeSlot = new DummySlot(new ItemStack(upgradeItem, chardisBlockEntity.NumInstalledUpgrades));
                 }
             }
+
             SetupDialog(chardisBlockEntity.NumSlots, chardisBlockEntity.NumInstalledUpgrades);
             chardisBlockEntity.NotifyInventoryResize += SetupDialog;
         }
@@ -90,9 +91,9 @@ namespace Chardis.Gui
             else
             {
                 var oldSearch = SingleComposer.GetTextInput(SearchBoxKey);
-                searchCaretPos = oldSearch.CaretPosInLine;
-                searchText = oldSearch.GetText();
-                searchHasFocus = oldSearch.HasFocus;
+                searchCaretPos = oldSearch?.CaretPosInLine ?? 0;
+                searchText = oldSearch?.GetText() ?? "";
+                searchHasFocus = oldSearch?.HasFocus ?? true;
                 SingleComposer.Clear(dialogBounds);
             }
 
@@ -184,12 +185,7 @@ namespace Chardis.Gui
 
         private int GetFilteredSlotCount()
         {
-            return string.IsNullOrEmpty(_filter) ? _chardisBlockEntity.NumSlots : _chardisBlockEntity.Inventory.Count(slot => slot?.Itemstack?.MatchesSearchText(capi.World, _filter) ?? false);
-        }
-
-        private void DoSendPacket(object p)
-        {
-            capi.Network.SendBlockEntityPacket(_chardisBlockEntity.Pos.X, _chardisBlockEntity.Pos.Y, _chardisBlockEntity.Pos.Z, p);
+            return string.IsNullOrEmpty(_filter) ? _chardisBlockEntity.Inventory.Count : _chardisBlockEntity.Inventory.Count(slot => slot?.Itemstack?.MatchesSearchText(capi.World, _filter) ?? false);
         }
     }
 }
