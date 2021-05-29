@@ -158,7 +158,7 @@ namespace Chardis
 					}
 
 					NumInstalledUpgrades += 1;
-					_numSlots = ModConfig.BaseSlots + (NumInstalledUpgrades + 1) * ModConfig.SlotsPerUpgrade;
+					_numSlots = ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade;
 					_inventory.InitSlots(_numSlots);
 					MarkDirty();
 
