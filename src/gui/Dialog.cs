@@ -37,7 +37,7 @@ namespace Chardis.Gui
                 }
             }
 
-            SetupDialog(chardisBlockEntity.NumSlots, chardisBlockEntity.NumInstalledUpgrades);
+            SetupDialog(chardisBlockEntity.Inventory.Count, chardisBlockEntity.NumInstalledUpgrades);
             chardisBlockEntity.NotifyInventoryResize += SetupDialog;
         }
 
@@ -58,7 +58,7 @@ namespace Chardis.Gui
             }
 
             _filter = filter;
-            SetupDialog(_chardisBlockEntity.NumSlots, _chardisBlockEntity.NumInstalledUpgrades);
+            SetupDialog(_chardisBlockEntity.Inventory.Count, _chardisBlockEntity.NumInstalledUpgrades);
 
             var slotGrid = SingleComposer.GetSlotGrid(StackListKey);
 

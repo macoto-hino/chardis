@@ -27,15 +27,16 @@ namespace Chardis
 		public override InventoryBase Inventory => _inventory;
 		public override string InventoryClassName => "chardis";
 		public int NumInstalledUpgrades { get; private set; }
-		public int NumSlots { get; private set; }
+
+		private int _numSlots;
 
 		public override void Initialize(ICoreAPI api)
 		{
 			Api = api;
 			ModConfig = api.ModLoader.GetModSystem<Chardis>().ModConfig;
-			if (NumSlots == 0)
+			if (_numSlots == 0)
 			{
-				NumSlots = ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade;
+				_numSlots = ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade;
 			}
 			base.Initialize(api);
 		}
@@ -45,12 +46,12 @@ namespace Chardis
 			Api = worldForResolving.Api;
 			ModConfig = Api.ModLoader.GetModSystem<Chardis>().ModConfig;
 			NumInstalledUpgrades = tree.GetInt("numInstalledUpgrades");
-			NumSlots = tree.GetInt("numSlots", ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade);
+			_numSlots = tree.GetInt("numSlots", ModConfig.BaseSlots + NumInstalledUpgrades * ModConfig.SlotsPerUpgrade);
 			Pos = new BlockPos(tree.GetInt("posx"), tree.GetInt("posy"), tree.GetInt("posz"));
 
 			base.FromTreeAttributes(tree, worldForResolving);
-			_inventory.InitSlots(NumSlots);
-			NotifyInventoryResize?.Invoke(NumSlots, NumInstalledUpgrades);
+			_inventory.InitSlots(_numSlots);
+			NotifyInventoryResize?.Invoke(_numSlots, NumInstalledUpgrades);
 		}
 
 		public override void ToTreeAttributes(ITreeAttribute tree)
@@ -67,7 +68,7 @@ namespace Chardis
 				return;
 			}
 
-			_inventory = new ChardisInventory("chardis", block.Id.ToString(), Api, NumSlots);
+			_inventory = new ChardisInventory("chardis", block.Id.ToString(), Api, _numSlots);
 
 			GetType().GetField("inventory", BindingFlags.Instance | BindingFlags.NonPublic)?.SetValue(this, _inventory);
 			_inventory.BaseWeight = 1f;
@@ -157,8 +158,8 @@ namespace Chardis
 					}
 
 					NumInstalledUpgrades += 1;
-					NumSlots = ModConfig.BaseSlots + (NumInstalledUpgrades + 1) * ModConfig.SlotsPerUpgrade;
-					_inventory.InitSlots(NumSlots);
+					_numSlots = ModConfig.BaseSlots + (NumInstalledUpgrades + 1) * ModConfig.SlotsPerUpgrade;
+					_inventory.InitSlots(_numSlots);
 					MarkDirty();
 
 					sapi.SendMessage(player, 0, "Installed upgrade.", EnumChatType.CommandSuccess);
