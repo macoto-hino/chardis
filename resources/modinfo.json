@@ -3,13 +3,13 @@
 	"name": "ChARDIS",
 	"modid": "chardis",
 	"side": "universal",
-	"version": "1.0.2",
+	"version": "1.1.0",
 	
 	"description" : "It's bigger on the inside.",
 	"website": "https://github.com/mschelstastic/chardis",
 	"authors": [ "mschelstastic" ],
 	
 	"dependencies": {
-		"game": "1.8.0"
+		"game": "1.15.5"
 	}
 }
