@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Vintagestory.API.Client;
 using Vintagestory.API.Common;
@@ -22,6 +23,9 @@ namespace Chardis.Gui
         private readonly ItemSlot _upgradeSlot;
         private readonly IPlayer _player;
         private string _filter;
+
+        private readonly Dictionary<int, string> _searchCache = new Dictionary<int, string>();
+        private readonly Dictionary<int, string> _searchCacheNames = new Dictionary<int, string>();
 
         public Dialog(ICoreClientAPI capi, IPlayer player, ChardisBlockEntity chardisBlockEntity) : base("", chardisBlockEntity.Inventory, chardisBlockEntity.Pos, 8, capi)
         {
@@ -68,7 +72,7 @@ namespace Chardis.Gui
             }
             else
             {
-                slotGrid.FilterItemsBySearchText(filter);
+                slotGrid.FilterItemsBySearchText(filter, _searchCache, _searchCacheNames);
             }
         }
 
@@ -181,6 +185,19 @@ namespace Chardis.Gui
 
             SingleComposer.EndChildElements(); // bgBounds
             SingleComposer.Compose();
+
+            // (re)build caches
+            _searchCacheNames.Clear();
+            _searchCache.Clear();
+            for (var slotId = 0; slotId < Inventory.Count; ++slotId)
+            {
+                var inSlot = Inventory[slotId];
+                if (inSlot.Itemstack != null)
+                {
+                    _searchCacheNames[slotId] = inSlot.Itemstack.GetName();
+                    _searchCache[slotId] = _searchCacheNames[slotId] + " " + inSlot.Itemstack.GetDescription(capi.World, inSlot);
+                }
+            }
         }
 
         private int GetFilteredSlotCount()
