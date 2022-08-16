@@ -6,7 +6,7 @@ namespace Chardis.Gui
 {
     public class TextBox : GuiElementTextInput
     {
-        public TextBox(ICoreClientAPI capi, ElementBounds bounds, Vintagestory.API.Common.Action<string> OnTextChanged, CairoFont font) : base(capi, bounds, OnTextChanged, font)
+        public TextBox(ICoreClientAPI capi, ElementBounds bounds, Action<string> OnTextChanged, CairoFont font) : base(capi, bounds, OnTextChanged, font)
         {
         }
 

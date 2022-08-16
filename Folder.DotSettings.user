@@ -2,4 +2,5 @@
 	<s:Boolean x:Key="/Default/AddReferences/RecentPaths/=D_003A_005Cdevelopment_005Cmodding_005Cvintagestory_005Cvsmod_002Dcrowbar_005Cbin_005CDebug_005Cnet452_005CCrowbar_002Edll/@EntryIndexedValue">True</s:Boolean>
 	<s:String x:Key="/Default/Environment/AssemblyExplorer/XmlDocument/@EntryValue">&lt;AssemblyExplorer&gt;&#xD;
   &lt;Assembly Path="C:\Users\msche\AppData\Roaming\Vintagestory\VintagestoryAPI.dll" /&gt;&#xD;
-&lt;/AssemblyExplorer&gt;</s:String></wpf:ResourceDictionary>
+&lt;/AssemblyExplorer&gt;</s:String>
+	<s:String x:Key="/Default/Environment/Hierarchy/Build/BuildTool/DotNetCliExePath/@EntryValue">C:\Users\msche\.dotnet\dotnet.exe</s:String></wpf:ResourceDictionary>
